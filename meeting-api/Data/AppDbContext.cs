@@ -7,9 +7,10 @@ namespace POC.Data
     {
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
+        public DbSet<Recording> recording { get; set; }
         public DbSet<Meeting> meeting { get; set; }
         public DbSet<ActionItem> actionitem { get; set; }
-        public DbSet<Recording> recording { get; set; }
+        public DbSet<Account> account { get; set; }
 
     }
 }
