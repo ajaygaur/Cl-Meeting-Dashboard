@@ -2,11 +2,12 @@ import React, { useEffect, useState } from 'react';
 import '../../styles.css';
 import MeetingDetail from './MeetingDetail';
 import MeetingCapture from './MeetingCapture';
-
+import OfficeService from "../../services/officeService";
 
 function MeetingModule(){
     const [meetingId, setMeetingId] = useState(null);
     const [newEventData,setNewEventData] = useState(null);
+    const [savedEventData,setSavedEventData] = useState(null);
     const [error, setError] = useState(null);
     const [officeReady,setOfficeReady] = useState(false);
     const [initialize,setInitialize] = useState(false);
@@ -19,6 +20,7 @@ function MeetingModule(){
             if (Office && Office.context && Office.context.mailbox) {
                 console.log('Office context is available'); 
                 setOfficeReady(true);               
+                populateMeetingInfo();
                 fetchMeetingInfo();
               } else {
                 setError('Office.js is not available in the current environment.');
@@ -26,7 +28,7 @@ function MeetingModule(){
         });        
       }, []);
 
-      const fetchMeetingInfo = async() => {
+      const populateMeetingInfo = async() => {
         try {
           const item = Office.context.mailbox.item;
           if (item) {
@@ -79,6 +81,13 @@ function MeetingModule(){
         }
       };
 
+      const fetchMeetingInfo = async() => {    //readonly
+        
+        const meetingInfo = await OfficeService.getMeetingDetails();
+        setSavedEventData(meetingInfo);
+
+      }
+
       if (error) {
         return <div className="error">Error: {error}</div>;
       }
@@ -87,7 +96,8 @@ function MeetingModule(){
         if (meetingId != null) {
           return(
               <div className='meeting-module'>
-                  <MeetingDetail meetingId={meetingId} />
+                 {/* <MeetingDetail meetingId={meetingId} /> */} 
+                 <MeetingDetail meetingId={meetingId} officeMeetingInfo={savedEventData} />
               </div>
             )
         }

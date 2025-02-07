@@ -1,21 +1,26 @@
 import React, { useEffect, useState } from 'react';
 import { fetchMeetingDetail } from '../../services/meetingService';
 import Modal from '../../components/Modal';
+import OfficeService from "../../services/officeService";
 
-function MeetingDetail({ meetingId }) {
+function MeetingDetail({ meetingId , officeMeetingInfo}) {
   const [detail, setDetail] = useState(null);
 
   useEffect(() => {
-    const getDetails = async () => {
+    /*const getDetails = async () => {
       try {
         const data = await fetchMeetingDetail(meetingId);
         setDetail(data);
       } catch (error) {
         console.error('Failed to load meeting detail:', error);
       }
-    };
-    getDetails();
-  }, [meetingId]);
+    };*/
+
+    setDetail(officeMeetingInfo);
+
+
+    //getDetails();
+  }, [officeMeetingInfo]);
 
   if (!detail) {
     return <p>Loading details...</p>;
@@ -24,7 +29,12 @@ function MeetingDetail({ meetingId }) {
   return (
       <div>
         <h3>{detail.meetingTitle}</h3>
-        <p>{detail.organizer}</p>
+        <p>{detail.venueAddress}</p>
+        <p>{detail.attendees}</p>
+        <p>{detail.accounts}</p>
+        <p>{detail.speakers}</p>
+        <p>{detail.joiningLink}</p>
+        <p>{detail.serviceProvider}</p>
       </div>    
   );
 }

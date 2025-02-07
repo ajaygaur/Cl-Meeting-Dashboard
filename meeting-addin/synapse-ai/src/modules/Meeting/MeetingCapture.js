@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { createMeeting , fetchAccounts } from '../../services/meetingService';
+import OfficeService from "../../services/officeService";
 import Select from "react-select";
-import axios from "axios";
 import "bootstrap/dist/css/bootstrap.min.css";
+
 
 function MeetingCapture({ eventInfo }) {
   const [meetingCaptureInfo, setMeetingCaptureInfo] = useState(null);
@@ -54,10 +55,37 @@ function MeetingCapture({ eventInfo }) {
   const accountHandleChange = (field, value) => {
     
   };
+
   const handleSubmit = async (e) => {
     setLoading(true);
-    setTimeout(() => setLoading(false), 2000); // Simulate API call delay
+    //setTimeout(() => setLoading(false), 2000); // Simulate API call delay
+
+    //save info in outlook item.
+    const meetingData = {
+      meetingTitle: eventInfo?.subject,
+      venueAddress: eventInfo?.location.displayName,
+      attendees: eventInfo?.attendees,
+      accounts: eventInfo?.accounts,
+      speakers: eventInfo?.speakers,
+      joiningLink: joiningLink,
+      serviceProvider: eventInfo?.serviceProvider
+    };
+
+    saveMeeting(meetingData);
+    setLoading(false);
+
   }
+
+  const saveMeeting = async (meetingData) => {
+
+  const saveResult =  await OfficeService.saveMeetingDetails(meetingData);
+              
+  // Checking the success status
+  if(!saveResult.isSuccessful){
+    OfficeService.showNotification("Success", saveResult.text);
+  }           
+    OfficeService.showNotification("Success", saveResult.text);
+}
 
   return (
     <div className="container mt-4">
