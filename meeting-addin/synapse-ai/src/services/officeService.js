@@ -62,13 +62,24 @@ const OfficeService = {
      * @param {string} message - Notification message
      */
     showNotification: async (title, message) => {
-      Office.context.mailbox.item.notificationMessages.addAsync("notification", {
-        type: "informationalMessage",
-        message: message,
-        icon: "iconid",
-        persistent: false
-      });
+      Office.context.mailbox.item.notificationMessages.replaceAsync(
+        "notification",
+        {
+          type: Office.MailboxEnums.ItemNotificationMessageType.InformationalMessage,
+          message: message,
+          icon: "iconid",
+          persistent: true  // Change to true for better visibility in OWA
+        },
+        function (asyncResult) {
+          if (asyncResult.status === Office.AsyncResultStatus.Failed) {
+            console.error("Notification Error:", asyncResult.error.message);
+          } else {
+            console.log("Notification added successfully");
+          }
+        }
+      );
     }
+
   };
   
   export default OfficeService;

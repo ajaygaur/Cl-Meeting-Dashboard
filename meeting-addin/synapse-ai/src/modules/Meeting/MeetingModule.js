@@ -21,7 +21,7 @@ function MeetingModule(){
                 console.log('Office context is available'); 
                 setOfficeReady(true);               
                 populateMeetingInfo();
-                fetchMeetingInfo();
+                //fetchMeetingInfo();
               } else {
                 setError('Office.js is not available in the current environment.');
               }
@@ -31,6 +31,8 @@ function MeetingModule(){
       const populateMeetingInfo = async() => {
         try {
           const item = Office.context.mailbox.item;
+          const meetingResponse = await OfficeService.getMeetingDetails();
+          
           if (item) {
             /*const meetingDetails = {
               subject: item.subject || 'No subject',
@@ -38,11 +40,15 @@ function MeetingModule(){
               end: item.end ? new Date(item.end).toLocaleString() : 'N/A',
               location: item.location || 'No location',
               organizer: item.organizer.emailAddress || 'No organizer',
-            };*/
+            };
             if(item.meetingid != null){
                 //setMeetingId(item.meetingid);
                 setMeetingId(2);
-            }
+            }*/
+           if(meetingResponse != null && isMeetingPassed(meetingResponse.meetingStartDate)){
+            setSavedEventData(meetingResponse);
+            setInitialize(true);
+           }
             else{
                 const eventObj = {
                     meetingTitle: item.subject || "Untitled Meeting",
@@ -81,23 +87,33 @@ function MeetingModule(){
         }
       };
 
-      const fetchMeetingInfo = async() => {    //readonly
+      const isMeetingPassed = (meetingDate) => {
+        //return false;
+        const currentDate = new Date(); // Get current date & time
+        return new Date(meetingDate) < currentDate; // Compare dates
+
+      };
+
+
+      
+
+      /*const fetchMeetingInfo = async() => {    //readonly
         
         const meetingInfo = await OfficeService.getMeetingDetails();
         setSavedEventData(meetingInfo);
 
-      }
+      }*/
 
       if (error) {
         return <div className="error">Error: {error}</div>;
       }
     
       if(officeReady && initialize){
-        if (meetingId != null) {
+        if (savedEventData != null) {
           return(
               <div className='meeting-module'>
                  {/* <MeetingDetail meetingId={meetingId} /> */} 
-                 <MeetingDetail meetingId={meetingId} officeMeetingInfo={savedEventData} />
+                 <MeetingDetail officeMeetingInfo={savedEventData} />
               </div>
             )
         }

@@ -3,7 +3,7 @@ import { fetchMeetingDetail } from '../../services/meetingService';
 import Modal from '../../components/Modal';
 import OfficeService from "../../services/officeService";
 
-function MeetingDetail({ meetingId , officeMeetingInfo}) {
+function MeetingDetail({ officeMeetingInfo }) {
   const [detail, setDetail] = useState(null);
 
   useEffect(() => {
@@ -27,15 +27,36 @@ function MeetingDetail({ meetingId , officeMeetingInfo}) {
   }
 
   return (
-      <div>
-        <h3>{detail.meetingTitle}</h3>
-        <p>{detail.venueAddress}</p>
-        <p>{detail.attendees}</p>
-        <p>{detail.accounts}</p>
-        <p>{detail.speakers}</p>
-        <p>{detail.joiningLink}</p>
-        <p>{detail.serviceProvider}</p>
-      </div>    
+    <div>
+      <h3>{detail.meetingTitle || "N/A"}</h3>
+      <p><strong>Venue Address:</strong> {detail.venueAddress || "N/A"}</p>
+      <p><strong>Joining Link:</strong> {detail.joiningLink || "N/A"}</p>
+      <p><strong>Service Provider:</strong> {detail.serviceProvider || "N/A"}</p>
+
+      {/* Render attendees as a list */}
+      <p><strong>Attendees:</strong></p>
+      <ul>
+        {(detail.attendees || []).map((attendee, index) => (
+          <li key={index}>{attendee.label}</li>
+        ))}
+      </ul>
+      {/* Render accounts as a list */}
+      <p><strong>Accounts:</strong></p>
+      <ul>
+        {(detail.accounts || []).map((account, index) => (
+          <li key={index}>{account.label}</li>
+        ))}
+      </ul>
+
+      {/* Render speakers as a list */}
+      <p><strong>Speakers:</strong></p>
+      <ul>
+        {(detail.speakers || []).map((speaker, index) => (
+          <li key={index}>{speaker.label}</li>
+        ))}
+      </ul>
+
+    </div>
   );
 }
 

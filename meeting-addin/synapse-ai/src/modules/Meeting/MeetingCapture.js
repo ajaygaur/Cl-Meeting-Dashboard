@@ -11,6 +11,13 @@ function MeetingCapture({ eventInfo }) {
   const [joiningLink, setJoiningLink] = useState("");
   const [loading,setLoading] = useState(false);
 
+  const [meetingTitle, setMeetingTitle] = useState(eventInfo?.meetingTitle || "");
+  const [venueAddress, setVenueAddress] = useState(eventInfo?.venueAddress || "");
+  const [selectedAccounts, setSelectedAccounts] = useState([]);
+  const [selectedSpeakers, setSelectedSpeakers] = useState([]);
+  const [selectedAttendees,setSelectedAttendees] = useState([]);
+  const [selectedProvider, setSelectedProvider] = useState("");
+
   useEffect(()=>{
       const accounts = async () => {
             try {
@@ -57,18 +64,20 @@ function MeetingCapture({ eventInfo }) {
   };
 
   const handleSubmit = async (e) => {
+    e.preventDefault();
     setLoading(true);
     //setTimeout(() => setLoading(false), 2000); // Simulate API call delay
 
     //save info in outlook item.
     const meetingData = {
-      meetingTitle: eventInfo?.subject,
-      venueAddress: eventInfo?.location.displayName,
+      meetingTitle: eventInfo?.meetingTitle,
+      venueAddress: eventInfo?.venueAddress,
       attendees: eventInfo?.attendees,
-      accounts: eventInfo?.accounts,
-      speakers: eventInfo?.speakers,
+      accounts: selectedAccounts,
+      speakers: selectedSpeakers,
       joiningLink: joiningLink,
-      serviceProvider: eventInfo?.serviceProvider
+      serviceProvider: selectedProvider,
+      meetingStartDate : eventInfo?.meetingDate
     };
 
     saveMeeting(meetingData);
@@ -82,7 +91,7 @@ function MeetingCapture({ eventInfo }) {
               
   // Checking the success status
   if(!saveResult.isSuccessful){
-    OfficeService.showNotification("Success", saveResult.text);
+    OfficeService.showNotification("Error", saveResult.text);
   }           
     OfficeService.showNotification("Success", saveResult.text);
 }
@@ -102,6 +111,7 @@ function MeetingCapture({ eventInfo }) {
                 name="accounts"
                 options={accountsInfo}
                 placeholder="Select Account"
+                onChange={(selectedOptions) => setSelectedAccounts(selectedOptions)}
               />
             </div>
 
@@ -110,7 +120,8 @@ function MeetingCapture({ eventInfo }) {
               <label className="form-label">Meeting Title:</label>
               <input
                 type="text"
-                value={eventInfo?.meetingTitle}
+                value={meetingTitle}
+                onChange={(e) => setMeetingTitle(e.target.value)}
                 required
                 className="form-control"
               />
@@ -121,7 +132,8 @@ function MeetingCapture({ eventInfo }) {
               <label className="form-label">Venue Address:</label>
               <input
                 type="text"
-                value={eventInfo?.venueAddress}
+                value={venueAddress}
+                onChange={(e) => setVenueAddress(e.target.value)}
                 className="form-control"
               />
             </div>
@@ -134,6 +146,7 @@ function MeetingCapture({ eventInfo }) {
                 name="speakers"
                 options={speakers}
                 placeholder="Select Speakers"
+                onChange={(selectedOptions) => setSelectedSpeakers(selectedOptions)}
               />
             </div>
 
@@ -144,19 +157,22 @@ function MeetingCapture({ eventInfo }) {
                 options={eventInfo?.attendees}
                 isMulti
                 placeholder="Select Attendees"
+                onChange={(selectedOptions) => setSelectedAttendees(selectedOptions)}
               />
             </div>
 
             {/* Joining Link */}
             <div className="mb-3">
               <label className="form-label">Joining Link:</label>
-              <input type="text" value={joiningLink} className="form-control" />
+              <input type="text" value={joiningLink} className="form-control" onChange={(e) => setJoiningLink(e.target.value)}/>
             </div>
 
             {/* Service Provider Dropdown */}
             <div className="mb-3">
               <label className="form-label">Service Provider:</label>
-              <select className="form-select">
+              <select className="form-select"
+              onChange={(e) => setSelectedProvider(e.target.value)}
+              >
                 <option value="">Select Provider</option>
                 <option value="zoom">Zoom</option>
                 <option value="teams">Microsoft Teams</option>
