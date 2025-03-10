@@ -1,7 +1,7 @@
 // officeService.js - Handles Office.js interactions
 
 /* global Office */
-const OfficeService = {
+export const OfficeService = {
     /**
      * Load custom properties for the Outlook item
      * @returns {Promise} Resolves with custom properties object
@@ -27,7 +27,7 @@ const OfficeService = {
     saveMeetingDetails: async (meetingData) => {
       
             const customProperties = await OfficeService.loadCustomProperties();
-            customProperties.set("MeetingDetails", JSON.stringify(meetingData));
+            customProperties.set("MeetingDetails", JSON.stringify({meetingData}));
       
             const saveResult = await new Promise((resolve) => {
               customProperties.saveAsync((result) => {
@@ -54,8 +54,109 @@ const OfficeService = {
       return meetingDetails ? JSON.parse(meetingDetails) : null;
       
     },
+
+     // Function to fetch appointment details
+     // officeService.js
+fetchAppointmentData: async () => {
   
-    
+  const item = Office.context.mailbox.item;
+
+  if (!item) {
+    throw new Error("No item found");
+  }
+
+  const appointmentData = {
+    subject: "",
+    attendees: [],
+    startTime: "",
+    endTime: "",
+    location: "",
+  };
+
+  const promises = [];
+
+  // Fetch Subject
+    promises.push(
+      new Promise((resolve) => {
+        item.subject.getAsync((result) => {
+          if (result.status === Office.AsyncResultStatus.Succeeded) {
+            appointmentData.subject = result.value;
+          }
+          resolve(); // Ensure promise resolves
+        });
+      })
+    );
+
+  // Fetch Start & End Time (Direct access, no async call needed)
+   // Get Start Time
+   promises.push(
+    new Promise((resolve) => {
+      item.start.getAsync((result) => {
+        if (result.status === Office.AsyncResultStatus.Succeeded) {
+          appointmentData.startTime = new Date(result.value);
+        }
+        resolve();
+      });
+    })
+  );
+
+  // Get End Time
+  promises.push(
+    new Promise((resolve) => {
+      item.end.getAsync((result) => {
+        if (result.status === Office.AsyncResultStatus.Succeeded) {
+          appointmentData.endTime = new Date(result.value);
+        }
+        resolve();
+      });
+    })
+  );
+
+  // Fetch Attendees
+    promises.push(
+      new Promise((resolve) => {
+        item.requiredAttendees.getAsync((result) => {
+          if (result.status === Office.AsyncResultStatus.Succeeded) {
+            appointmentData.attendees = result.value.map((attendee) => ({
+              email: attendee.emailAddress,
+              name: attendee.displayName,
+            }));
+          }
+          resolve(); // Ensure promise resolves
+        });
+      })
+    );
+
+    promises.push(
+      new Promise((resolve) => {
+        item.location.getAsync((result) => {
+          if (result.status === Office.AsyncResultStatus.Succeeded) {
+            appointmentData.location = result.value;
+          }
+          resolve(); // Ensure promise resolves
+        });
+      })
+    );
+
+  // Wait for all async operations to complete
+  await Promise.all(promises);
+
+  return appointmentData;
+},
+
+
+    getSubjectAsync:async () => {
+      return new Promise((resolve, reject) => {
+          Office.context.mailbox.item.subject.getAsync((result) => {
+              if (result.status === Office.AsyncResultStatus.Succeeded) {
+                  resolve(result.value);
+              } else {
+                  reject(new Error(`Failed to get subject: ${result.error.message}`));
+              }
+          });
+      });
+  },
+  
     /**
      * Show a notification in Outlook
      * @param {string} title - Notification title

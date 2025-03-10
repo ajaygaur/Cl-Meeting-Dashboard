@@ -3,28 +3,48 @@ import { createMeeting , fetchAccounts } from '../../services/meetingService';
 import OfficeService from "../../services/officeService";
 import Select from "react-select";
 import "bootstrap/dist/css/bootstrap.min.css";
-
+/* global Office */
 
 function MeetingCapture({ eventInfo }) {
-  const [meetingCaptureInfo, setMeetingCaptureInfo] = useState(null);
-  const [accountsInfo, setAccountsInfo] = useState(null);
+
   const [joiningLink, setJoiningLink] = useState("");
   const [loading,setLoading] = useState(false);
 
-  const [meetingTitle, setMeetingTitle] = useState(eventInfo?.meetingTitle || "");
-  const [venueAddress, setVenueAddress] = useState(eventInfo?.venueAddress || "");
+  const [meetingCaptureInfo, setMeetingCaptureInfo] = useState(null);
+  const [accountsInfo, setAccountsInfo] = useState(null);
+
   const [selectedAccounts, setSelectedAccounts] = useState([]);
   const [selectedSpeakers, setSelectedSpeakers] = useState([]);
-  const [selectedAttendees,setSelectedAttendees] = useState([]);
+  const [selectedAttendees,setSelectedAttendees] = useState(eventInfo?.attendees || []);
   const [selectedProvider, setSelectedProvider] = useState("");
 
+  const [meetingTitle, setMeetingTitle] = useState(eventInfo?.meetingTitle);
+  const [venueAddress, setVenueAddress] = useState(eventInfo?.venueAddress);
+  const [attendeesList, setAttendeesList] = useState(eventInfo?.attendees || []);
+  const [meetingDate,setMeetingDate] = useState(eventInfo?.meetingDate);
+
   useEffect(()=>{
+    let intervalId;
+
+     const loadEvent = async() => {
+
+
+      //setSelectedAttendees(eventInfo?.attendees);
+      setSelectedSpeakers(eventInfo?.speakers);
+      setSelectedAccounts(eventInfo?.account);
+      setSelectedProvider(eventInfo?.serviceProvider);
+
+     }
+
+     loadEvent();
+
+      
       const accounts = async () => {
             try {
               const data = await fetchAccounts();
-              const mappedArray = data.map(item => ({
-                value: item.gpNumber,
-                label: `${item.accountName} - ${item.accountType}`
+              const mappedArray = (data??[]).map(item => ({
+                value: item.id,
+                label: `${item.gpNumber} - ${item.accountName} - ${item.accountType}`
             }));
               setAccountsInfo(mappedArray);
             } catch (error) {
@@ -51,6 +71,29 @@ function MeetingCapture({ eventInfo }) {
       };
       extractMeetingLink(eventInfo?.body);
 
+
+      const updateAppointmentData = async () => {
+        try {
+          const newAppointmentData = await OfficeService.fetchAppointmentData();
+
+          // Update only if values have changed
+          //if (JSON.stringify(newAppointmentData) !== JSON.stringify(appointment)) {
+            setMeetingTitle(newAppointmentData['subject']);
+            setVenueAddress(newAppointmentData['location']);
+            setAttendeesList(newAppointmentData['attendees'].map((attendee, index) => ({
+              value: index + 1,
+              label: attendee.email
+            })));
+            setMeetingDate(newAppointmentData['startTime']);
+          //}
+        } catch (error) {
+          console.error("Error fetching appointment data:", error);
+        }
+      };
+
+      // Start polling every 3 seconds
+      intervalId = setInterval(updateAppointmentData, 3000);
+
   },[])
 
   const speakers = [
@@ -70,14 +113,15 @@ function MeetingCapture({ eventInfo }) {
 
     //save info in outlook item.
     const meetingData = {
-      meetingTitle: eventInfo?.meetingTitle,
-      venueAddress: eventInfo?.venueAddress,
-      attendees: eventInfo?.attendees,
+      meetingTitle: meetingTitle,
+      venueAddress: venueAddress,
+      attendees: attendeesList,
       accounts: selectedAccounts,
       speakers: selectedSpeakers,
       joiningLink: joiningLink,
       serviceProvider: selectedProvider,
-      meetingStartDate : eventInfo?.meetingDate
+      meetingStartDate : meetingDate,
+      organiser : Office.context.mailbox.initialData.userEmailAddress
     };
 
     saveMeeting(meetingData);
@@ -88,19 +132,24 @@ function MeetingCapture({ eventInfo }) {
   const saveMeeting = async (meetingData) => {
 
   const saveResult =  await OfficeService.saveMeetingDetails(meetingData);
+  
               
   // Checking the success status
-  if(!saveResult.isSuccessful){
+  if(!saveResult.isSuccessful){    
     OfficeService.showNotification("Error", saveResult.text);
-  }           
+  }
+  else{
+    const dbSaveResult = await createMeeting(meetingData);
     OfficeService.showNotification("Success", saveResult.text);
+  }           
+    
 }
 
   return (
     <div className="container mt-4">
       <div className="card shadow-sm">
         <div className="card-body">
-          <h3 className="card-title text-center mb-4">Capture Meeting for CRM</h3>
+          <h3 className="card-title text-center mb-4">New Capture Meeting for CRM</h3>
 
           <form onSubmit={handleSubmit}>
             {/* Account Select */}
@@ -111,6 +160,7 @@ function MeetingCapture({ eventInfo }) {
                 name="accounts"
                 options={accountsInfo}
                 placeholder="Select Account"
+                value={selectedAccounts}
                 onChange={(selectedOptions) => setSelectedAccounts(selectedOptions)}
               />
             </div>
@@ -146,6 +196,7 @@ function MeetingCapture({ eventInfo }) {
                 name="speakers"
                 options={speakers}
                 placeholder="Select Speakers"
+                value={selectedSpeakers}
                 onChange={(selectedOptions) => setSelectedSpeakers(selectedOptions)}
               />
             </div>
@@ -154,9 +205,10 @@ function MeetingCapture({ eventInfo }) {
             <div className="mb-3">
               <label className="form-label">Attendees:</label>
               <Select
-                options={eventInfo?.attendees}
+                options={attendeesList || []}
                 isMulti
                 placeholder="Select Attendees"
+                value={attendeesList} // Show selected attendees
                 onChange={(selectedOptions) => setSelectedAttendees(selectedOptions)}
               />
             </div>
@@ -171,6 +223,7 @@ function MeetingCapture({ eventInfo }) {
             <div className="mb-3">
               <label className="form-label">Service Provider:</label>
               <select className="form-select"
+              value={selectedProvider}
               onChange={(e) => setSelectedProvider(e.target.value)}
               >
                 <option value="">Select Provider</option>

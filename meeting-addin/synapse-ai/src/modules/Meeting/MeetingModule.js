@@ -1,16 +1,36 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState ,useRef } from 'react';
 import '../../styles.css';
 import MeetingDetail from './MeetingDetail';
 import MeetingCapture from './MeetingCapture';
 import OfficeService from "../../services/officeService";
+import { preSaveSend } from "../../eventHandlers";
 
 function MeetingModule(){
-    const [meetingId, setMeetingId] = useState(null);
-    const [newEventData,setNewEventData] = useState(null);
-    const [savedEventData,setSavedEventData] = useState(null);
-    const [error, setError] = useState(null);
-    const [officeReady,setOfficeReady] = useState(false);
-    const [initialize,setInitialize] = useState(false);
+
+  const eventObj = useRef({
+    meetingTitle: "Untitled Meeting",
+    meetingDate: null,
+    duration: null,
+    meetingStatus: "active",
+    venueAddress: "Online",
+    organizer: "Unknown",
+    attendees: null,
+    speakers : null,
+    account : null,
+    serviceProvider : null,
+    body: ""
+  });
+
+  const [eventData, setEventData] = useState(eventObj.current);
+
+  const [error, setError] = useState(null);
+  const [officeReady,setOfficeReady] = useState(false);
+  const [initialize,setInitialize] = useState(false);
+
+  //const [meetingId, setMeetingId] = useState(null);
+  const [newEventData,setNewEventData] = useState(null);
+  const [savedEventData,setSavedEventData] = useState(null);
+
 
     useEffect(() => {
         // Ensure Office.js is available
@@ -19,8 +39,10 @@ function MeetingModule(){
             console.log('Office.js is ready');
             if (Office && Office.context && Office.context.mailbox) {
                 console.log('Office context is available'); 
-                setOfficeReady(true);               
-                populateMeetingInfo();
+                setOfficeReady(true);
+                registerHandlers();               
+                prepareMeetingForm();
+                window.preSaveSend = preSaveSend;
                 //fetchMeetingInfo();
               } else {
                 setError('Office.js is not available in the current environment.');
@@ -28,7 +50,56 @@ function MeetingModule(){
         });        
       }, []);
 
-      const populateMeetingInfo = async() => {
+      const registerHandlers = async() => {
+        try {
+          Office.context.mailbox.item.addHandlerAsync(Office.EventType.AppointmentTimeChanged, handleAppointmentTimeChanged);
+          Office.context.mailbox.item.addHandlerAsync(Office.EventType.AttachmentsChanged, handleAttachmentsChanged);
+          Office.context.mailbox.item.addHandlerAsync(Office.EventType.EnhancedLocationsChanged, handleEnhancedLocationsChanged);
+          Office.context.mailbox.item.addHandlerAsync(Office.EventType.RecipientsChanged, handleRecipientsChanged);
+        } catch (err) {
+          setError(`Error registering event handlers: ${err.message}`);
+        }
+      };
+
+      const handleAppointmentTimeChanged = () => {
+        // When a new item is loaded, get the subject
+        Office.context.mailbox.item.subject.getAsync((result) => {
+          if (result.status === Office.AsyncResultStatus.Succeeded) {
+            console.log("subject :");
+            console.log(result);
+            initializeNewEventObject();
+          } else {
+            console.error("Failed to get subject:", result.error.message);
+          }
+        });
+      };
+
+      const handleAttachmentsChanged = () => {
+
+      };
+
+      const handleEnhancedLocationsChanged = () => {
+
+      };
+
+      const handleRecipientsChanged = () => {
+
+        const item = Office.context.mailbox.item;
+        const isNewAppointment = !item.itemId;
+
+        if(isNewAppointment){
+          Office.context.mailbox.item.subject.getAsync((result) => {
+            if (result.status === Office.AsyncResultStatus.Succeeded && result.value) {
+                eventObj.current.meetingTitle = result.value;
+                console.log("Updated Meeting Title:", eventObj.current.meetingTitle);
+                setEventData({...eventObj.current,meetingTitle:eventObj.current.meetingTitle});
+            }
+        });
+        }
+
+      };
+
+      const prepareMeetingForm = async() => {
         try {
           const item = Office.context.mailbox.item;
           const meetingResponse = await OfficeService.getMeetingDetails();
@@ -45,52 +116,78 @@ function MeetingModule(){
                 //setMeetingId(item.meetingid);
                 setMeetingId(2);
             }*/
-           if(meetingResponse != null && isMeetingPassed(meetingResponse.meetingStartDate)){
-            setSavedEventData(meetingResponse);
-            setInitialize(true);
+           
+           if(meetingResponse != null){   
+              setSavedEventData(meetingResponse['meetingData']); 
+              initializeEventObject(meetingResponse['meetingData']);
            }
-            else{
-                const eventObj = {
-                    meetingTitle: item.subject || "Untitled Meeting",
-                    meetingDate: item.start ? new Date(item.start).toISOString() : new Date().toISOString(),
-                    duration: item.end ? Math.round((new Date(item.end) - new Date(item.start)) / 60000): 30, // Default 30 mins if duration is missing
-                    meetingStatus: "active",
-                    venueAddress: item.location || "Online",
-                    organizer: item.organizer ? item.organizer.emailAddress : "Unknown",
-                    attendees: item.requiredAttendees? item.requiredAttendees.map((attendee,index) => 
-                      ({
-                        value:index+1,
-                        label:attendee.emailAddress
-                      })): null ,
-                    body : ""                
-                };
-
-                const bodyText = await new Promise((resolve, reject) => {
-                  item.body.getAsync(Office.CoercionType.Text, (result) => {
-                    if (result.status === Office.AsyncResultStatus.Succeeded) {
-                      resolve(result.value);
-                    } else {
-                      reject(result.error);
-                    }
-                  });
-                });
-
-                setNewEventData({...eventObj,body:bodyText});
-                setInitialize(true);
-            }
-            
+           else{
+              initializeNewEventObject();
+           }            
           } else {
-            setError('No meeting item selected.');
+              setError('No meeting item selected.');
           }
+
+          
+          
+
         } catch (err) {
           setError(`Error fetching meeting details: ${err.message}`);
         }
       };
 
+
+
+      const initializeNewEventObject = async () => {
+        
+        const item = Office.context.mailbox.item;                                         
+        setEventData({...eventObj.current});
+        
+        setInitialize(true);  
+      };
+
+      const initializeEventObject = async (meetingData) => {
+        
+        const item = Office.context.mailbox.item; 
+        
+        eventObj.current = {
+          meetingTitle: item.subject || "Untitled Meeting",
+          meetingDate: meetingData['meetingStartDate'],
+          duration: 60,
+          meetingStatus: "active",
+          venueAddress: meetingData['venueAddress'],
+          organizer: meetingData['organiser'],
+          attendees: meetingData['attendees'].map((attendee, index) => ({
+                value: index + 1,
+                label: attendee.label
+              })),
+          speakers : meetingData['speakers'],
+          account : meetingData['accounts'],
+          serviceProvider : meetingData['serviceProvider'],
+          body: ""
+        };
+        
+        const bodyText = await new Promise((resolve, reject) => {
+          item.body.getAsync(Office.CoercionType.Text, (result) => {
+            if (result.status === Office.AsyncResultStatus.Succeeded) {
+              resolve(result.value);
+            } else {
+              reject(result.error);
+            }
+          });
+        });
+
+        setEventData({...eventObj.current,body:bodyText});
+        setInitialize(true);    
+      };
+
       const isMeetingPassed = (meetingDate) => {
         //return false;
         const currentDate = new Date(); // Get current date & time
-        return new Date(meetingDate) < currentDate; // Compare dates
+        const check = (new Date(meetingDate) < currentDate)
+        console.log(check);
+        
+        return check; // Compare dates
 
       };
 
@@ -109,7 +206,7 @@ function MeetingModule(){
       }
     
       if(officeReady && initialize){
-        if (savedEventData != null) {
+        if (savedEventData != null && isMeetingPassed(savedEventData.meetingStartDate)) {
           return(
               <div className='meeting-module'>
                  {/* <MeetingDetail meetingId={meetingId} /> */} 
@@ -120,7 +217,7 @@ function MeetingModule(){
         else{
           return(
               <div className='meeting-module'>
-                  <MeetingCapture eventInfo={newEventData} />
+                  <MeetingCapture eventInfo={eventData} />
               </div>
               
             )

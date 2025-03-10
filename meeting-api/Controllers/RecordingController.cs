@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using POC.Data;
 using POC.Models;
 
@@ -53,18 +54,28 @@ namespace POC.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateRecording(int id, Recording updatedRecording)
         {
-            if (id != updatedRecording.ID)
-                return BadRequest("Mismatched Recording ID");
+            if (updatedRecording == null)
+                return BadRequest("Invalid recording data.");
 
             var existingRecording = await _appDbContext.recording.FindAsync(id);
             if (existingRecording == null)
                 return NotFound($"Recording with ID {id} not found");
 
-            existingRecording.MeetingID = updatedRecording.MeetingID;
-            existingRecording.RecordingLink = updatedRecording.RecordingLink;
-            existingRecording.DownloadLink = updatedRecording.DownloadLink;
-            existingRecording.TranscriptPath = updatedRecording.TranscriptPath;
-            existingRecording.Status = updatedRecording.Status;
+            if (updatedRecording.MeetingID != null)
+                existingRecording.MeetingID = updatedRecording.MeetingID;
+
+            if (!string.IsNullOrEmpty(updatedRecording.RecordingLink))
+                existingRecording.RecordingLink = updatedRecording.RecordingLink;
+
+            if (!string.IsNullOrEmpty(updatedRecording.DownloadLink))
+                existingRecording.DownloadLink = updatedRecording.DownloadLink;
+
+            if (!string.IsNullOrEmpty(updatedRecording.TranscriptPath))
+                existingRecording.TranscriptPath = updatedRecording.TranscriptPath;
+
+            if (updatedRecording.Status != null)
+                existingRecording.Status = updatedRecording.Status;
+
             existingRecording.ModifiedAt = DateTime.Now;
 
             try
