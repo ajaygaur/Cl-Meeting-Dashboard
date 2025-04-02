@@ -3,9 +3,9 @@
     public class Recording
     {
         public int ID {  get; set; }
-        public int MeetingID {  get; set; }
+        public int? MeetingID {  get; set; }
         public string RecordingLink { get; set; } = string.Empty;   
-        public int DownloadLink {  get; set; }
+        public string DownloadLink {  get; set; } = string.Empty;
         public string TranscriptPath { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }= DateTime.Now;

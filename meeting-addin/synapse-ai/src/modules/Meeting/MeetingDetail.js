@@ -2,9 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { fetchMeetingDetail } from '../../services/meetingService';
 import Modal from '../../components/Modal';
 import OfficeService from "../../services/officeService";
+import "bootstrap/dist/css/bootstrap.min.css";
+
+import CallReport from "../CallReport/CallReport";
 
 function MeetingDetail({ officeMeetingInfo }) {
   const [detail, setDetail] = useState(null);
+  const [showCallReport, setShowCallReport] = useState(false);
+
 
   useEffect(() => {
     /*const getDetails = async () => {
@@ -27,7 +32,12 @@ function MeetingDetail({ officeMeetingInfo }) {
   }
 
   return (
+
     <div>
+      {showCallReport ? (
+      <CallReport eventInfo={detail} onGoBack={() => setShowCallReport(false)} />
+      ):(
+        <div>
       <h3>{detail.meetingTitle || "N/A"}</h3>
       <p><strong>Venue Address:</strong> {detail.venueAddress || "N/A"}</p>
       <p><strong>Joining Link:</strong> {detail.joiningLink || "N/A"}</p>
@@ -55,8 +65,16 @@ function MeetingDetail({ officeMeetingInfo }) {
           <li key={index}>{speaker.label}</li>
         ))}
       </ul>
-
+      
+      {/* Primary Buttons */}
+      <div className="text-center space-x-4">
+        <button className="btn btn-primary w-10 me-2" onClick={() => setShowCallReport(true)}>Generate CallReport</button>
+        <button className="btn btn-primary w-10">Generate CallSummary</button>
+      </div>
+     </div>
+      )}
     </div>
+    
   );
 }
 

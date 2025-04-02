@@ -38,13 +38,34 @@ namespace POC.Controllers
             return Ok(actionItems);
         }
 
-        [HttpGet("{id}")]
+        [HttpGet("{id:int}")]
         public async Task<ActionResult<ActionItem>> GetActionItemById(int id)
         {
             var actionItem = await _appDbContext.actionitem.FindAsync(id);
 
             if (actionItem == null)
                 return NotFound($"ActionItem with ID {id} not found");
+
+            return Ok(actionItem);
+        }
+
+        [HttpGet("{outlookId}")]
+        public async Task<ActionResult<ActionItem>> GetActionItemforMeeting(string outlookId)
+        {
+            var meeting = await _appDbContext.meeting.FirstOrDefaultAsync(m => m.OutlookItemId == outlookId);
+
+            if(meeting == null)
+                return NotFound($"Meeting with Outlook ID {outlookId} not found");
+
+            var existingRecording = await _appDbContext.recording.FirstOrDefaultAsync(r => r.MeetingID == meeting.ID);
+
+            if (existingRecording == null)
+                return NotFound($"Recording  for Outlook ID {outlookId} not found");
+
+            var actionItem = await _appDbContext.actionitem.FirstOrDefaultAsync(a => a.RecordingID == existingRecording.ID);
+
+            if (actionItem == null)
+                return NotFound($"ActionItem for Outlook ID {outlookId} not found");
 
             return Ok(actionItem);
         }
