@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { API_BASE_URL, MEETING_DETAIL_ENDPOINT ,ACCOUNT_ENDPOINT} from '../constants/apiConstants';
+import { API_BASE_URL, MEETING_DETAIL_ENDPOINT ,ACCOUNT_ENDPOINT,ACTION_ENDPOINT} from '../constants/apiConstants';
 import { OfficeService } from './officeService';
 
 /* global Office */
@@ -21,6 +21,7 @@ export const createMeeting = async (meetingData) => {
       //const item = Office.context.mailbox.item;
 
       const meetingPayload = {
+        outlookItemId: meetingData['outlookItemId'], //"OUTLOOK-" + Date.now() + "-" + Math.random().toString(36).substr(2, 9),
         accountID: meetingData['accounts'][0]?.value,
         meetingTitle: meetingData['meetingTitle'],
         meetingDate: new Date().toISOString(), // Set the meeting date dynamically
@@ -63,3 +64,13 @@ export const createMeeting = async (meetingData) => {
         throw error;
     }
   };
+
+ export const fetchActionDetails = async (outlookItemId) => {
+  try{
+    const response = await axios.get(`${API_BASE_URL}${ACTION_ENDPOINT}/${outlookItemId}`);
+    return response.data;
+  }catch(error){
+    console.error('Error fetching action item details:', error);
+    throw error;
+  }
+};

@@ -8,6 +8,7 @@ import { preSaveSend } from "../../eventHandlers";
 function MeetingModule(){
 
   const eventObj = useRef({
+    outlookItemId: null,
     meetingTitle: "Untitled Meeting",
     meetingDate: null,
     duration: null,
@@ -151,6 +152,7 @@ function MeetingModule(){
         const item = Office.context.mailbox.item; 
         
         eventObj.current = {
+          outlookItemId: meetingData['outlookItemId'],
           meetingTitle: item.subject || "Untitled Meeting",
           meetingDate: meetingData['meetingStartDate'],
           duration: 60,

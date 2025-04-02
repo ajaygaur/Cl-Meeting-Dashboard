@@ -106,6 +106,7 @@ function MeetingCapture({ eventInfo }) {
     
   };
 
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -113,6 +114,7 @@ function MeetingCapture({ eventInfo }) {
 
     //save info in outlook item.
     const meetingData = {
+      outlookItemId : "OUTLOOK-" + Date.now() + "-" + Math.random().toString(36).substr(2, 9),
       meetingTitle: meetingTitle,
       venueAddress: venueAddress,
       attendees: attendeesList,
@@ -140,7 +142,7 @@ function MeetingCapture({ eventInfo }) {
   }
   else{
     const dbSaveResult = await createMeeting(meetingData);
-    OfficeService.showNotification("Success", saveResult.text);
+    OfficeService.showNotification("Success", saveResult.text);    
   }           
     
 }
